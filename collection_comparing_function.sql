@@ -1,4 +1,4 @@
-CREATE OR REPLACE NONEDITIONABLE FUNCTION "C##TRG_USER"."TRG_COLLECTION_COMPARER" (coll_1 IN ANYDATA,coll_2 IN ANYDATA) return varchar2
+CREATE OR REPLACE NONEDITIONABLE FUNCTION "COLLECTION_COMPARER" (coll_1 IN ANYDATA,coll_2 IN ANYDATA) return varchar2
 IS
     atype ANYTYPE;
     incompatible_types EXCEPTION;
@@ -9,8 +9,8 @@ IS
     coll_type VARCHAR2(100);
     coll_owner VARCHAR2(100);
     relation_btw_colls VARCHAR2(100);
-    coll_elem_details trg_coll_compare_help_pkg.collection_element_rt;
-    base_types trg_nt_types.varchar2_100_ntt:=trg_nt_types.varchar2_100_ntt('BINARY_DOUBLE','BINARY_FLOAT','CHAR','DATE','INTERVAL DAY TO SECOND','INTERVAL YEAR TO MONTH','NUMBER','NVARCHAR2','NCHAR','RAW','TIMESTAMP',
+    coll_elem_details collection_compare_help_pkg.collection_element_rt;
+    base_types collection_compare_help_pkg.varchar2_100_ntt:=collection_compare_help_pkg.varchar2_100_ntt('BINARY_DOUBLE','BINARY_FLOAT','CHAR','DATE','INTERVAL DAY TO SECOND','INTERVAL YEAR TO MONTH','NUMBER','NVARCHAR2','NCHAR','RAW','TIMESTAMP',
                                                 'TIMESTAMP WITH TZ','TIMESTAMP WITH LOCAL TZ','VARCHAR2');
 BEGIN
     IF coll_1.GetType(atype) != DBMS_TYPES.TYPECODE_NAMEDCOLLECTION OR coll_2.GetType(atype) != DBMS_TYPES.TYPECODE_NAMEDCOLLECTION THEN
@@ -20,14 +20,14 @@ BEGIN
     END IF;
     coll_type:=SUBSTR(coll_1.GetTypeName, INSTR(coll_1.GetTypeName,'.')+1);
     coll_owner:=SUBSTR(coll_1.GetTypeName,1, INSTR(coll_1.GetTypeName,'.')-1);
-    coll_elem_details:=trg_coll_compare_help_pkg.element_check(coll_type,coll_owner);
+    coll_elem_details:=collection_compare_help_pkg.element_check(coll_type,coll_owner);
 
     IF coll_elem_details.type_pkg_name IS NOT NULL THEN
         coll_type:=coll_owner || '.' || coll_elem_details.type_pkg_name || '.' || coll_type;
     ELSE
         coll_type:=coll_owner || '.' || coll_type;
     END IF;
-    relation_btw_colls:=trg_coll_compare_help_pkg.relation_check(coll_1,coll_2,coll_type);
+    relation_btw_colls:=collection_compare_help_pkg.relation_check(coll_1,coll_2,coll_type);
 
     IF relation_btw_colls IN('null collection','empty collection') THEN
         RAISE empty_or_null_collection;
@@ -35,15 +35,15 @@ BEGIN
 
     IF coll_elem_details.coll_elem MEMBER OF base_types THEN
         IF relation_btw_colls='coll_1 bigger than coll_2' THEN
-            retval:=trg_coll_compare_help_pkg.result_translator(trg_coll_compare_help_pkg.compare_scalar_collections(coll_2,coll_1,coll_type),relation_btw_colls);
+            retval:=collection_compare_help_pkg.result_translator(collection_compare_help_pkg.compare_scalar_collections(coll_2,coll_1,coll_type),relation_btw_colls);
         ELSE
-            retval:=trg_coll_compare_help_pkg.result_translator(trg_coll_compare_help_pkg.compare_scalar_collections(coll_1,coll_2,coll_type),relation_btw_colls);
+            retval:=collection_compare_help_pkg.result_translator(collection_compare_help_pkg.compare_scalar_collections(coll_1,coll_2,coll_type),relation_btw_colls);
         END IF;
     ELSE
         IF relation_btw_colls='coll_1 bigger than coll_2' THEN
-            retval:=trg_coll_compare_help_pkg.result_translator(trg_coll_compare_help_pkg.compare_composite_collections(coll_2,coll_1,coll_type,coll_elem_details),relation_btw_colls);
+            retval:=collection_compare_help_pkg.result_translator(collection_compare_help_pkg.compare_composite_collections(coll_2,coll_1,coll_type,coll_elem_details),relation_btw_colls);
         ELSE
-            retval:=trg_coll_compare_help_pkg.result_translator(trg_coll_compare_help_pkg.compare_composite_collections(coll_1,coll_2,coll_type,coll_elem_details),relation_btw_colls);
+            retval:=collection_compare_help_pkg.result_translator(collection_compare_help_pkg.compare_composite_collections(coll_1,coll_2,coll_type,coll_elem_details),relation_btw_colls);
         END IF;
     END IF;
     return retval;
